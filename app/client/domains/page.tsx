@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Globe,
   Plus,
   RefreshCw,
-  Settings,
+  Settings2,
   MoreHorizontal,
   Search,
   Shield,
@@ -17,9 +16,19 @@ import {
   Clock,
   ExternalLink,
   Loader2,
+  XCircle,
+  ArrowUpDown,
+  Copy,
+  Check,
 } from "lucide-react";
-
-import { collection, query, where, getDocs } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -55,6 +64,7 @@ import {
 interface Domain {
   id: string;
   name: string;
+  tld: string;
   registrar: string;
   registered: string;
   expiry: string;
@@ -65,6 +75,9 @@ interface Domain {
   daysLeft: number;
 }
 
+type SortKey = "name" | "expiry" | "status";
+type SortDir = "asc" | "desc";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getDaysLeft(expiryDateStr: string): number {
@@ -73,110 +86,266 @@ function getDaysLeft(expiryDateStr: string): number {
   return Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function deriveStatus(
-  daysLeft: number,
-  rawStatus?: string
-): Domain["status"] {
+function deriveStatus(daysLeft: number, rawStatus?: string): Domain["status"] {
   if (rawStatus === "suspended") return "suspended";
   if (rawStatus === "expired" || daysLeft <= 0) return "expired";
   if (daysLeft <= 30) return "expiring";
   return "active";
 }
 
+function splitDomain(name: string): { sld: string; tld: string } {
+  const dot = name.indexOf(".");
+  if (dot === -1) return { sld: name, tld: "" };
+  return { sld: name.slice(0, dot), tld: name.slice(dot) };
+}
+
+function formatDate(raw: string): string {
+  const d = new Date(raw);
+  if (isNaN(d.getTime())) return raw;
+  return d.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+// ─── Status config ────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG = {
+  active: {
+    label: "Active",
+    icon: CheckCircle2,
+    className:
+      "gap-1.5 border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+  },
+  expiring: {
+    label: "Expiring",
+    icon: AlertTriangle,
+    className: "gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-400",
+  },
+  expired: {
+    label: "Expired",
+    icon: XCircle,
+    className:
+      "gap-1.5 border-destructive/30 bg-destructive/10 text-destructive",
+  },
+  suspended: {
+    label: "Suspended",
+    icon: Clock,
+    className:
+      "gap-1.5 border-destructive/30 bg-destructive/10 text-destructive",
+  },
+} as const;
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<
-  Domain["status"],
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: typeof CheckCircle2 }
-> = {
-  active:    { label: "Active",        variant: "secondary",   icon: CheckCircle2 },
-  expiring:  { label: "Expiring Soon", variant: "outline",     icon: AlertTriangle },
-  expired:   { label: "Expired",       variant: "destructive", icon: Clock },
-  suspended: { label: "Suspended",     variant: "destructive", icon: Clock },
-};
-
-function DomainStatusBadge({ status }: { status: Domain["status"] }) {
+function StatusBadge({ status }: { status: Domain["status"] }) {
   const cfg = STATUS_CONFIG[status];
   const Icon = cfg.icon;
   return (
-    <Badge
-      variant={cfg.variant}
-      className={
-        status === "active"
-          ? "gap-1.5 border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-          : status === "expiring"
-          ? "gap-1.5 border-amber-500/30 bg-amber-500/10 text-amber-400"
-          : "gap-1.5"
-      }
-    >
+    <Badge variant="outline" className={cfg.className}>
       <Icon className="size-3" />
       {cfg.label}
     </Badge>
   );
 }
 
+function DaysLeftPill({
+  daysLeft,
+  status,
+}: {
+  daysLeft: number;
+  status: Domain["status"];
+}) {
+  if (status === "active" && daysLeft > 60) return null;
+  if (daysLeft <= 0)
+    return (
+      <span className="text-xs font-medium text-destructive">Expired</span>
+    );
+  return (
+    <span
+      className={`text-xs font-medium tabular-nums ${
+        daysLeft <= 7
+          ? "text-red-400"
+          : daysLeft <= 30
+            ? "text-amber-400"
+            : "text-slate-500"
+      }`}
+    >
+      {daysLeft}d left
+    </span>
+  );
+}
+
 function AutoRenewToggle({
   enabled,
   domainId,
+  loading,
   onChange,
 }: {
   enabled: boolean;
   domainId: string;
+  loading: boolean;
   onChange: (id: string, val: boolean) => void;
 }) {
+  if (loading) {
+    return <Loader2 className="size-4 animate-spin text-muted-foreground" />;
+  }
   return (
     <button
       role="switch"
       aria-checked={enabled}
       onClick={() => onChange(domainId, !enabled)}
-      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
         enabled ? "bg-amber-500" : "bg-input"
       }`}
     >
       <span
-        className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+        className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
           enabled ? "translate-x-4" : "translate-x-0"
         }`}
       />
+      <span className="sr-only">
+        {enabled ? "Disable" : "Enable"} auto-renew
+      </span>
     </button>
   );
 }
 
-function DomainRowSkeleton() {
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  function handleCopy() {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }
   return (
-    <TableRow>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <TableCell key={i}>
-          <Skeleton className="h-5 w-full" />
-        </TableCell>
+    <button
+      onClick={handleCopy}
+      className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded text-muted-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:text-foreground"
+    >
+      {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+    </button>
+  );
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+function TableSkeleton() {
+  return (
+    <>
+      {[...Array(4)].map((_, i) => (
+        <TableRow key={i} className="hover:bg-transparent">
+          <TableCell>
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-8 rounded-lg shrink-0" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-3.5 w-36" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </div>
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </TableCell>
+          <TableCell>
+            <div className="space-y-1">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-5 w-9 rounded-full" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-6 w-20 rounded-md" />
+          </TableCell>
+          <TableCell className="text-right">
+            <Skeleton className="ml-auto h-7 w-16 rounded-md" />
+          </TableCell>
+        </TableRow>
       ))}
+    </>
+  );
+}
+
+function StatCardSkeleton() {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <Skeleton className="mb-2 h-3 w-16" />
+      <Skeleton className="h-7 w-10" />
+    </div>
+  );
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+function EmptyState({ filtered }: { filtered: boolean }) {
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={6}>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-muted">
+            <Globe className="size-6 text-muted-foreground" />
+          </div>
+          <p className="mb-1 text-sm font-semibold text-foreground">
+            {filtered
+              ? "No domains match your search"
+              : "No domains registered yet"}
+          </p>
+          <p className="mb-6 text-xs text-muted-foreground">
+            {filtered
+              ? "Try a different search term or clear the filter."
+              : "Register your first domain to get started."}
+          </p>
+          {!filtered && (
+            <Link href="/domains">
+              <Button
+                size="sm"
+                className="bg-amber-500 font-bold text-black hover:bg-amber-400"
+              >
+                <Plus className="mr-1.5 size-3.5" />
+                Register a Domain
+              </Button>
+            </Link>
+          )}
+        </div>
+      </TableCell>
     </TableRow>
   );
 }
 
-function EmptyState({ filtered }: { filtered: boolean }) {
+// ─── Sort button ──────────────────────────────────────────────────────────────
+
+function SortableHead({
+  label,
+  sortKey,
+  current,
+  dir,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  current: SortKey;
+  dir: SortDir;
+  onSort: (k: SortKey) => void;
+}) {
+  const active = current === sortKey;
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-        <Globe className="size-6 text-muted-foreground" />
-      </div>
-      <p className="mb-1 text-sm font-medium text-foreground">
-        {filtered ? "No domains match your search" : "No domains yet"}
-      </p>
-      <p className="mb-6 text-xs text-muted-foreground">
-        {filtered
-          ? "Try a different search term."
-          : "Register your first domain to get started."}
-      </p>
-      {!filtered && (
-        <Button asChild size="sm" className="bg-amber-500 font-bold text-black hover:bg-amber-400">
-          <Link href="/domains">
-            <Plus className="mr-1.5 size-3.5" />
-            Register Domain
-          </Link>
-        </Button>
-      )}
-    </div>
+    <button
+      className={`inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-widest transition-colors ${
+        active
+          ? "text-foreground"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+      onClick={() => onSort(sortKey)}
+    >
+      {label}
+      <ArrowUpDown
+        className={`size-3 transition-opacity ${active ? "opacity-100" : "opacity-40"}`}
+      />
+    </button>
   );
 }
 
@@ -184,184 +353,244 @@ function EmptyState({ filtered }: { filtered: boolean }) {
 
 export default function DomainsPage() {
   const { user } = useAuth();
-  const router = useRouter();
 
-  const [domains, setDomains] = useState<Domain[]>([]);
+  const [domains, setDomains] = useState<Domain[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("expiry");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  // ── Fetch from Firestore ───────────────────────────────────────────────────
-  useEffect(() => {
+  // ──
+
+  const fetchDomains = useCallback(async () => {
+    console.log({ user });
     if (!user) return;
-
-    async function fetchDomains() {
-      setLoading(true);
-      setError(null);
-      try {
-        const q = query(
-          collection(db, "services"),
-          where("userId", "==", user!.uid),
-          where("type", "==", "domain")
-        );
-        const snap = await getDocs(q);
-        const docs: Domain[] = snap.docs.map((doc) => {
-          const d = doc.data();
-          const expiryStr: string =
-            d.expiryDate?.toDate?.()?.toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }) ?? d.expiry ?? "—";
-          const daysLeft = d.expiryDate
-            ? getDaysLeft(d.expiryDate.toDate().toISOString())
-            : 999;
-          return {
-            id: doc.id,
-            name: d.domain ?? d.name ?? "—",
-            registrar: d.meta?.registrar ?? "Namecheap",
-            registered: d.createdAt?.toDate?.()?.toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            }) ?? "—",
-            expiry: expiryStr,
-            autoRenew: d.autoRenew ?? false,
-            status: deriveStatus(daysLeft, d.status),
-            privacyProtection: d.meta?.privacyProtection ?? false,
-            nameservers: d.meta?.nameservers ?? [],
-            daysLeft,
-          };
-        });
-        setDomains(docs);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load domains. Please try again.");
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    setError(null);
+    try {
+      const q = query(
+        collection(db, "services"),
+        where("userId", "==", user.uid),
+        where("type", "==", "domain"),
+      );
+      const snap = await getDocs(q);
+      const docs: Domain[] = snap.docs.map((d) => {
+        const data = d.data();
+        const expiryRaw: string =
+          data.expiryDate?.toDate?.()?.toISOString() ?? data.expiry ?? "";
+        const registeredRaw: string =
+          data.createdAt?.toDate?.()?.toISOString() ?? data.registered ?? "";
+        const daysLeft = expiryRaw ? getDaysLeft(expiryRaw) : 9999;
+        const name: string = data.domain ?? data.name ?? "—";
+        const { sld, tld } = splitDomain(name);
+        return {
+          id: d.id,
+          name,
+          tld,
+          registrar: data.meta?.registrar ?? "Namecheap",
+          registered: registeredRaw ? formatDate(registeredRaw) : "—",
+          expiry: expiryRaw ? formatDate(expiryRaw) : "—",
+          autoRenew: data.autoRenew ?? false,
+          status: deriveStatus(daysLeft, data.status),
+          privacyProtection: data.meta?.privacyProtection ?? false,
+          nameservers: data.meta?.nameservers ?? [],
+          daysLeft,
+        };
+      });
+      console.log(snap);
+      setDomains(docs);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load domains?. Please refresh or try again.");
+    } finally {
+      setLoading(false);
     }
-
-    fetchDomains();
   }, [user]);
 
+  useEffect(() => {
+    fetchDomains();
+  }, [fetchDomains]);
+
   // ── Auto-renew toggle ──────────────────────────────────────────────────────
+
   async function handleAutoRenewToggle(domainId: string, value: boolean) {
     setTogglingId(domainId);
     try {
-      const { doc, updateDoc } = await import("firebase/firestore");
       await updateDoc(doc(db, "services", domainId), { autoRenew: value });
       setDomains((prev) =>
-        prev.map((d) => (d.id === domainId ? { ...d, autoRenew: value } : d))
+        prev?.map((d) => (d.id === domainId ? { ...d, autoRenew: value } : d)),
       );
     } catch {
-      // silently revert — in production you'd show a toast
+      // In production: show a toast notification
     } finally {
       setTogglingId(null);
     }
   }
 
+  // ── Sort handler ───────────────────────────────────────────────────────────
+
+  function handleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
   // ── Derived state ──────────────────────────────────────────────────────────
-  const filtered = domains.filter((d) =>
-    d.name.toLowerCase().includes(search.toLowerCase())
-  );
-  const expiringCount = domains.filter((d) => d.status === "expiring").length;
-  const activeCount = domains.filter((d) => d.status === "active").length;
+
+  const filtered = domains
+    ?.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "name") cmp = a.name.localeCompare(b.name);
+      else if (sortKey === "expiry") cmp = a.daysLeft - b.daysLeft;
+      else if (sortKey === "status") cmp = a.status.localeCompare(b.status);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+
+  const activeCount = domains?.filter((d) => d.status === "active").length;
+  const expiringCount = domains?.filter((d) => d.status === "expiring").length;
+  const expiredCount = domains?.filter((d) => d.status === "expired").length;
 
   // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
-
-        {/* ── Page header ── */}
-        <div className="flex items-start justify-between gap-4">
+        {/* ── Page header ──────────────────────────────────────────────────── */}
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-extrabold tracking-tight text-foreground">
-              Your Domains
+            <h1
+              className="text-xl font-extrabold tracking-tight text-foreground"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
+              Domains
             </h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {loading
-                ? "Loading domains…"
-                : `${domains.length} domain${domains.length !== 1 ? "s" : ""} registered`}
+                ? "Loading your domains…"
+                : `${domains?.length} domain${domains?.length !== 1 ? "s" : ""} registered`}
             </p>
           </div>
-          <Button
-            asChild
-            className="shrink-0 bg-amber-500 font-bold text-black hover:bg-amber-400"
-          >
-            <Link href="/domains">
+          <Link href="/domains">
+            <Button
+              className="shrink-0 bg-amber-500 font-bold text-black hover:bg-amber-400"
+              style={{ fontFamily: "'Syne', sans-serif" }}
+            >
               <Plus className="mr-1.5 size-4" />
               Register Domain
-            </Link>
-          </Button>
+            </Button>
+          </Link>
         </div>
 
-        {/* ── Alert banner for expiring domains ── */}
-        {!loading && expiringCount > 0 && (
-          <div className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3">
+        {/* ── Stat cards ───────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {loading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              {[
+                {
+                  label: "Total",
+                  value: domains?.length,
+                  valueClass: "text-foreground",
+                },
+                {
+                  label: "Active",
+                  value: activeCount,
+                  valueClass: "text-emerald-400",
+                },
+                {
+                  label: "Expiring",
+                  value: expiringCount,
+                  valueClass:
+                    (expiringCount || 0) > 0
+                      ? "text-amber-400"
+                      : "text-muted-foreground",
+                },
+                {
+                  label: "Expired",
+                  value: expiredCount,
+                  valueClass:
+                    (expiredCount || 0) > 0
+                      ? "text-destructive"
+                      : "text-muted-foreground",
+                },
+              ].map((s) => (
+                <div
+                  key={s.label}
+                  className="rounded-xl border border-border bg-card px-4 py-3"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    {s.label}
+                  </p>
+                  <p
+                    className={`mt-1 text-2xl font-extrabold tracking-tight ${s.valueClass}`}
+                  >
+                    {s.value}
+                  </p>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* ── Expiring banner ──────────────────────────────────────────────── */}
+        {!loading && (expiringCount || 0) > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3">
             <AlertTriangle className="size-4 shrink-0 text-amber-400" />
             <p className="flex-1 text-sm text-amber-300">
               <span className="font-semibold">
                 {expiringCount} domain{expiringCount !== 1 ? "s" : ""}
               </span>{" "}
-              {expiringCount !== 1 ? "are" : "is"} expiring soon. Renew now to
-              avoid interruption.
+              {expiringCount !== 1 ? "are" : "is"} expiring within 30 days.
+              Renew now to avoid interruption.
             </p>
             <Button
               size="sm"
               variant="outline"
               className="shrink-0 border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+              onClick={() => setSortKey("expiry")}
             >
-              View expiring
+              Sort by expiry
             </Button>
           </div>
         )}
 
-        {/* ── Stats row ── */}
-        {!loading && domains.length > 0 && (
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-3">
-            {[
-              {
-                label: "Total",
-                value: domains.length,
-                color: "text-foreground",
-              },
-              {
-                label: "Active",
-                value: activeCount,
-                color: "text-emerald-400",
-              },
-              {
-                label: "Expiring",
-                value: expiringCount,
-                color: expiringCount > 0 ? "text-amber-400" : "text-muted-foreground",
-              },
-            ].map((s) => (
-              <div
-                key={s.label}
-                className="rounded-xl border border-border bg-card px-4 py-3"
-              >
-                <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                  {s.label}
-                </p>
-                <p className={`mt-1 text-2xl font-extrabold tracking-tight ${s.color}`}>
-                  {s.value}
-                </p>
-              </div>
-            ))}
+        {/* ── Error banner ─────────────────────────────────────────────────── */}
+        {error && (
+          <div className="flex items-center gap-3 rounded-xl border border-destructive/30 bg-destructive/8 px-4 py-3">
+            <XCircle className="size-4 shrink-0 text-destructive" />
+            <p className="flex-1 text-sm text-destructive">{error}</p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 border-destructive/40 text-destructive hover:bg-destructive/10"
+              onClick={fetchDomains}
+            >
+              <RefreshCw className="mr-1.5 size-3.5" />
+              Retry
+            </Button>
           </div>
         )}
 
-        {/* ── Search + table card ── */}
-        <div className="rounded-xl border border-border bg-card">
-
+        {/* ── Table card ───────────────────────────────────────────────────── */}
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
           {/* Search bar */}
           <div className="flex items-center gap-3 border-b border-border px-4 py-3">
             <Search className="size-4 shrink-0 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Search domains…"
+              placeholder="Search by domain name…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="h-8 flex-1 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0"
@@ -369,218 +598,275 @@ export default function DomainsPage() {
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="text-xs text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
               >
+                <XCircle className="size-3.5" />
                 Clear
               </button>
             )}
           </div>
 
-          {/* Error */}
-          {error && (
-            <div className="flex items-center gap-2 border-b border-border bg-destructive/5 px-4 py-3 text-sm text-destructive">
-              <AlertTriangle className="size-4 shrink-0" />
-              {error}
-            </div>
-          )}
-
           {/* Table */}
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[260px]">Domain</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Expiry</TableHead>
-                <TableHead>Auto-Renew</TableHead>
-                <TableHead>Privacy</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>
+                  <SortableHead
+                    label="Domain"
+                    sortKey="name"
+                    current={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortableHead
+                    label="Status"
+                    sortKey="status"
+                    current={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortableHead
+                    label="Expiry"
+                    sortKey="expiry"
+                    current={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
+                </TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Auto-Renew
+                </TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Privacy
+                </TableHead>
+                <TableHead className="text-right text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {loading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <DomainRowSkeleton key={i} />
-                ))
-              ) : filtered.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={6} className="p-0">
-                    <EmptyState filtered={!!search} />
-                  </TableCell>
-                </TableRow>
+                <TableSkeleton />
+              ) : filtered?.length === 0 ? (
+                <EmptyState filtered={!!search} />
               ) : (
-                filtered.map((domain) => (
-                  <TableRow key={domain.id} className="group">
-
-                    {/* Domain name */}
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-                          <Globe className="size-4 text-blue-400" />
+                filtered?.map((domain) => {
+                  const { sld, tld } = splitDomain(domain?.name);
+                  return (
+                    <TableRow key={domain?.id} className="group/row">
+                      {/* Domain name */}
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10">
+                            <Globe className="size-4 text-blue-400" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center">
+                              <span className="text-sm font-semibold text-foreground">
+                                {sld}
+                              </span>
+                              <span className="text-sm text-muted-foreground">
+                                {tld}
+                              </span>
+                              <CopyButton text={domain?.name} />
+                            </div>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              via {domain?.registrar} · reg.{" "}
+                              {domain?.registered}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {domain.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Reg. {domain.registered}
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
+                      </TableCell>
 
-                    {/* Status */}
-                    <TableCell>
-                      <DomainStatusBadge status={domain.status} />
-                    </TableCell>
+                      {/* Status */}
+                      <TableCell>
+                        <StatusBadge status={domain?.status} />
+                      </TableCell>
 
-                    {/* Expiry */}
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span
-                          className={`text-sm ${
-                            domain.status === "expiring"
-                              ? "font-medium text-amber-400"
-                              : domain.status === "expired"
-                              ? "font-medium text-destructive"
-                              : "text-foreground"
-                          }`}
-                        >
-                          {domain.expiry}
-                        </span>
-                        {domain.daysLeft > 0 && domain.daysLeft <= 60 && (
-                          <span className="text-xs text-amber-400/80">
-                            {domain.daysLeft}d remaining
+                      {/* Expiry */}
+                      <TableCell>
+                        <div className="flex flex-col gap-0.5">
+                          <span
+                            className={`text-sm tabular-nums ${
+                              domain?.status === "expiring"
+                                ? "font-semibold text-amber-400"
+                                : domain?.status === "expired"
+                                  ? "font-semibold text-destructive"
+                                  : "text-foreground"
+                            }`}
+                          >
+                            {domain?.expiry}
                           </span>
-                        )}
-                      </div>
-                    </TableCell>
+                          <DaysLeftPill
+                            daysLeft={domain?.daysLeft}
+                            status={domain?.status}
+                          />
+                        </div>
+                      </TableCell>
 
-                    {/* Auto-renew */}
-                    <TableCell>
-                      {togglingId === domain.id ? (
-                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
-                      ) : (
+                      {/* Auto-renew */}
+                      <TableCell>
                         <AutoRenewToggle
-                          enabled={domain.autoRenew}
-                          domainId={domain.id}
+                          enabled={domain?.autoRenew}
+                          domainId={domain?.id}
+                          loading={togglingId === domain?.id}
                           onChange={handleAutoRenewToggle}
                         />
-                      )}
-                    </TableCell>
+                      </TableCell>
 
-                    {/* Privacy */}
-                    <TableCell>
-                      {domain.privacyProtection ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex w-fit items-center gap-1.5 rounded-md bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400">
-                              <Shield className="size-3" />
-                              Protected
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>WHOIS privacy is active</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex w-fit items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-                              <ShieldOff className="size-3" />
-                              Off
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>WHOIS privacy is disabled</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-
-                    {/* Actions */}
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-                        {/* DNS */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 px-2.5 text-xs"
-                              asChild
-                            >
-                              <Link href={`/client/domains/${domain.id}/dns`}>
-                                <Settings className="mr-1 size-3" />
-                                DNS
-                              </Link>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Manage DNS records</TooltipContent>
-                        </Tooltip>
-
-                        {/* Renew — shown when expiring */}
-                        {(domain.status === "expiring" ||
-                          domain.status === "expired") && (
+                      {/* Privacy */}
+                      <TableCell>
+                        {domain?.privacyProtection ? (
                           <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size="sm"
-                                className="h-7 bg-amber-500 px-2.5 text-xs font-bold text-black hover:bg-amber-400"
-                              >
-                                <RefreshCw className="mr-1 size-3" />
-                                Renew
-                              </Button>
+                            <TooltipTrigger>
+                              <div className="inline-flex w-fit cursor-default items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400">
+                                <Shield className="size-3" />
+                                Protected
+                              </div>
                             </TooltipTrigger>
-                            <TooltipContent>Renew this domain</TooltipContent>
+                            <TooltipContent>
+                              WHOIS privacy is enabled
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className="inline-flex w-fit cursor-default items-center gap-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs font-medium text-muted-foreground">
+                                <ShieldOff className="size-3" />
+                                Off
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              WHOIS privacy is disabled. Your contact info may
+                              be public.
+                            </TooltipContent>
                           </Tooltip>
                         )}
+                      </TableCell>
 
-                        {/* More */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-7">
+                      {/* Actions */}
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* DNS button — always visible */}
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2.5 text-xs"
+                              >
+                                <Link
+                                  href={`/client/domains/${domain?.id}/dns`}
+                                >
+                                  <Settings2 className="mr-1 size-3" />
+                                  DNS
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Manage DNS records</TooltipContent>
+                          </Tooltip>
+
+                          {/* Renew CTA — only when expiring / expired */}
+                          {(domain?.status === "expiring" ||
+                            domain?.status === "expired") && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Button
+                                  size="sm"
+                                  className="h-7 bg-amber-500 px-2.5 text-xs font-bold text-black hover:bg-amber-400"
+                                >
+                                  <RefreshCw className="mr-1 size-3" />
+                                  Renew
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Renew this domain</TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          {/* More menu */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              className="inline-flex size-7 items-center justify-center rounded-md border border-transparent text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              aria-label="More options"
+                            >
                               <MoreHorizontal className="size-4" />
-                              <span className="sr-only">More options</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/client/domains/${domain.id}/dns`}>
-                                <Settings className="mr-2 size-4" />
-                                Manage DNS
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <ExternalLink className="mr-2 size-4" />
-                              View WHOIS
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Shield className="mr-2 size-4" />
-                              {domain.privacyProtection
-                                ? "Disable Privacy"
-                                : "Enable Privacy"}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                              <RefreshCw className="mr-2 size-4" />
-                              Transfer Domain
-                            </DropdownMenuItem>
-                            <DropdownMenuItem variant="destructive">
-                              Cancel Domain
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              <DropdownMenuItem>
+                                <Link
+                                  href={`/client/domains/${domain?.id}/dns`}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Settings2 className="size-4" />
+                                  Manage DNS
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="flex items-center gap-2">
+                                <ExternalLink className="size-4" />
+                                View WHOIS
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="flex items-center gap-2">
+                                {domain?.privacyProtection ? (
+                                  <>
+                                    <ShieldOff className="size-4" />
+                                    Disable Privacy
+                                  </>
+                                ) : (
+                                  <>
+                                    <Shield className="size-4" />
+                                    Enable Privacy
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="flex items-center gap-2">
+                                <RefreshCw className="size-4" />
+                                Transfer Out
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                variant="destructive"
+                                className="flex items-center gap-2"
+                              >
+                                Cancel Domain
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
 
-          {/* Footer count */}
-          {!loading && filtered.length > 0 && (
-            <div className="border-t border-border px-4 py-2.5">
+          {/* Table footer */}
+          {!loading && filtered?.length > 0 && (
+            <div className="flex items-center justify-between border-t border-border px-4 py-2.5">
               <p className="text-xs text-muted-foreground">
-                {filtered.length} of {domains.length} domain
-                {domains.length !== 1 ? "s" : ""}
+                Showing{" "}
+                <span className="font-medium text-foreground">
+                  {filtered?.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-medium text-foreground">
+                  {domains?.length}
+                </span>{" "}
+                domain{domains?.length !== 1 ? "s" : ""}
               </p>
+              <button
+                onClick={fetchDomains}
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <RefreshCw className="size-3" />
+                Refresh
+              </button>
             </div>
           )}
         </div>

@@ -11,12 +11,11 @@ import {
   MessageCircle,
   Settings,
   LogOut,
-  Menu,
   X,
   Zap,
+  Menu,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // ─── Nav items ────────────────────────────────────────────────────────────────
@@ -38,9 +37,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col gap-2">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-3 py-5 border-b border-white/[0.06]">
+      <div className="flex items-center gap-2.5 border-b border-white/[0.06] px-3 py-5">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-base shadow-lg shadow-amber-500/20">
-          <Zap size={15} className="text-black fill-black" />
+          <Zap size={15} className="fill-black text-black" />
         </span>
         <span
           className="text-[1.05rem] font-extrabold tracking-tight text-slate-100"
@@ -112,35 +111,46 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
 export function DesktopSidebar() {
   return (
-    <aside className="hidden md:flex h-screen w-[220px] shrink-0 flex-col border-r border-white/[0.06] bg-[#0b1120] sticky top-0">
+    <aside className="sticky top-0 hidden h-screen w-[220px] shrink-0 flex-col border-r border-white/[0.06] bg-[#0b1120] md:flex">
       <SidebarContent />
     </aside>
   );
 }
 
 // ─── Mobile sidebar (Sheet drawer) ───────────────────────────────────────────
+//
+// FIX: SheetTrigger from @base-ui/react does NOT support the `asChild` prop.
+// Wrapping a <Button> (which renders a <button>) inside SheetTrigger (which
+// also renders a <button>) causes invalid nested <button> elements and a
+// hydration mismatch.
+//
+// Solution: render a plain element directly as SheetTrigger's child, or style
+// SheetTrigger itself with Tailwind classes instead of nesting a Button inside.
 
 export function MobileSidebar() {
   const [open, setOpen] = React.useState(false);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden text-slate-400 hover:text-slate-200"
-          aria-label="Open navigation"
-        >
-          <Menu size={20} />
-        </Button>
+      {/*
+        SheetTrigger renders its own <button>. Do NOT nest another <button> /
+        <Button> inside — that produces <button><button> which is invalid HTML
+        and causes React hydration errors.
+
+        Style this element directly with Tailwind instead.
+      */}
+      <SheetTrigger
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/[0.05] hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 md:hidden"
+        aria-label="Open navigation"
+      >
+        <Menu size={20} />
       </SheetTrigger>
 
       <SheetContent
         side="left"
         className="w-[220px] border-r border-white/[0.06] bg-[#0b1120] p-0 [&>button]:hidden"
       >
-        {/* Close button */}
+        {/* Close button — plain <button>, NOT a nested Button component */}
         <button
           onClick={() => setOpen(false)}
           className="absolute right-3 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-white/10 hover:text-slate-300"
