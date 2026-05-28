@@ -1,4 +1,3 @@
-// Cart state hook placeholder
 "use client";
 
 /**
@@ -10,6 +9,7 @@
  */
 
 import { create } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import { persist, createJSONStorage } from "zustand/middleware";
 import {
   doc,
@@ -210,18 +210,32 @@ export const useCartStore = create<CartState & CartActions>()(
 );
 
 // ─── Convenience hook (subset of store) ──────────────────────────────────────
+//
+// useShallow prevents a new object reference on every render, which would
+// cause "getServerSnapshot should be cached" / infinite update loops.
+// Computed values (totalItems, totalKobo, totalFormatted) are derived from
+// `items` directly here rather than calling store methods, so they stay
+// stable until `items` actually changes.
 
 export function useCart() {
-  return useCartStore((s) => ({
-    items: s.items,
-    addItem: s.addItem,
-    removeItem: s.removeItem,
-    setQuantity: s.setQuantity,
-    clear: s.clear,
-    totalItems: s.totalItems(),
-    totalKobo: s.totalKobo(),
-    totalFormatted: s.totalFormatted(),
-  }));
+  const { items, addItem, removeItem, setQuantity, clear } = useCartStore(
+    useShallow((s) => ({
+      items: s.items,
+      addItem: s.addItem,
+      removeItem: s.removeItem,
+      setQuantity: s.setQuantity,
+      clear: s.clear,
+    }))
+  );
+
+  const totalItems = items.reduce((acc, i) => acc + i.quantity, 0);
+  const totalKobo = items.reduce((acc, i) => acc + i.priceKobo * i.quantity, 0);
+  const totalFormatted = `₦${(totalKobo / 100).toLocaleString("en-NG", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`;
+
+  return { items, addItem, removeItem, setQuantity, clear, totalItems, totalKobo, totalFormatted };
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────

@@ -3,13 +3,18 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Zap, ShoppingCart, Menu, X, User, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Zap,
+  ShoppingCart,
+  Menu,
+  X,
+  User,
+  LogOut,
+  LayoutDashboard,
+  ChevronDown,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,9 +32,9 @@ import { clearSessionCookie } from "@/lib/session";
 // ─── Nav links ────────────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
-  { href: "/domains",  label: "Domains"  },
-  { href: "/hosting",  label: "Hosting"  },
-  { href: "/pricing",  label: "Pricing"  },
+  { href: "/domains", label: "Domains" },
+  { href: "/hosting", label: "Hosting" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/reseller", label: "Resellers" },
 ] as const;
 
@@ -66,7 +71,7 @@ export default function PublicNavbar() {
         "fixed inset-x-0 top-0 z-50 border-b transition-all duration-200",
         scrolled
           ? "border-white/[0.08] bg-[#080c14]/95 backdrop-blur-xl"
-          : "border-white/[0.05] bg-[#080c14]/80 backdrop-blur-md"
+          : "border-white/[0.05] bg-[#080c14]/80 backdrop-blur-md",
       )}
     >
       <div className="mx-auto flex h-16 max-w-[1180px] items-center justify-between px-4 sm:px-6">
@@ -92,7 +97,7 @@ export default function PublicNavbar() {
                   "text-sm font-medium transition-colors duration-150",
                   isActive(href)
                     ? "text-amber-400"
-                    : "text-slate-400 hover:text-slate-200"
+                    : "text-slate-400 hover:text-slate-200",
                 )}
               >
                 {label}
@@ -112,9 +117,7 @@ export default function PublicNavbar() {
             >
               <ShoppingCart size={18} />
               {totalItems > 0 && (
-                <Badge
-                  className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 p-0 text-[0.6rem] font-bold text-black"
-                >
+                <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 p-0 text-[0.6rem] font-bold text-black">
                   {totalItems > 9 ? "9+" : totalItems}
                 </Badge>
               )}
@@ -126,7 +129,7 @@ export default function PublicNavbar() {
             <div className="h-8 w-20 animate-pulse rounded-lg bg-white/5" />
           ) : user ? (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger>
                 <Button
                   variant="ghost"
                   className="flex items-center gap-2 text-slate-300 hover:text-slate-100"
@@ -146,14 +149,17 @@ export default function PublicNavbar() {
                 align="end"
                 className="w-48 border-white/10 bg-[#0d1321] text-slate-200"
               >
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem>
                   <Link href="/client" className="flex items-center gap-2">
                     <LayoutDashboard size={14} className="text-slate-400" />
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/client/settings" className="flex items-center gap-2">
+                <DropdownMenuItem>
+                  <Link
+                    href="/client/settings"
+                    className="flex items-center gap-2"
+                  >
                     <User size={14} className="text-slate-400" />
                     Account
                   </Link>
@@ -170,12 +176,15 @@ export default function PublicNavbar() {
             </DropdownMenu>
           ) : (
             <>
-              <Button variant="ghost" size="sm" asChild className="text-slate-400 hover:text-slate-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-slate-400 hover:text-slate-200"
+              >
                 <Link href="/auth/login">Sign in</Link>
               </Button>
               <Button
                 size="sm"
-                asChild
                 className="bg-amber-500 font-bold text-black hover:bg-amber-400"
                 style={{ fontFamily: "'Syne', sans-serif" }}
               >
@@ -188,7 +197,11 @@ export default function PublicNavbar() {
         {/* ── Mobile: cart + hamburger ── */}
         <div className="flex items-center gap-1 md:hidden">
           <Link href="/cart" aria-label="Cart">
-            <Button variant="ghost" size="icon" className="relative text-slate-400">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative text-slate-400"
+            >
               <ShoppingCart size={18} />
               {totalItems > 0 && (
                 <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 p-0 text-[0.6rem] font-bold text-black">
@@ -199,15 +212,14 @@ export default function PublicNavbar() {
           </Link>
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-slate-400 hover:text-slate-200"
-                aria-label="Open navigation"
-              >
-                {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-              </Button>
+            {/* SheetTrigger from @base-ui renders its own <button> via asChild.
+                Wrapping our Button (which also renders a <button>) causes nesting.
+                Use a plain <button> with Tailwind classes instead. */}
+            <SheetTrigger
+              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/[0.05] hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50"
+              aria-label="Open navigation"
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </SheetTrigger>
 
             <SheetContent
@@ -239,7 +251,7 @@ export default function PublicNavbar() {
                         "flex items-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                         isActive(href)
                           ? "bg-amber-500/10 text-amber-400"
-                          : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
+                          : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200",
                       )}
                     >
                       {label}
@@ -255,7 +267,9 @@ export default function PublicNavbar() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2.5 rounded-lg px-4 py-2">
                         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500/15 text-[0.7rem] font-bold text-amber-400">
-                          {getInitials(profile?.displayName ?? user.email ?? "?")}
+                          {getInitials(
+                            profile?.displayName ?? user.email ?? "?",
+                          )}
                         </span>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-slate-200">
@@ -274,7 +288,10 @@ export default function PublicNavbar() {
                         <LayoutDashboard size={15} /> Dashboard
                       </Link>
                       <button
-                        onClick={() => { setMobileOpen(false); handleSignOut(); }}
+                        onClick={() => {
+                          setMobileOpen(false);
+                          handleSignOut();
+                        }}
                         className="flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-sm text-red-400 hover:bg-red-500/10"
                       >
                         <LogOut size={15} /> Sign out
@@ -282,17 +299,26 @@ export default function PublicNavbar() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Button variant="outline" className="w-full border-white/10" asChild>
-                        <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                      <Button
+                        variant="outline"
+                        className="w-full border-white/10"
+                        
+                      >
+                        <Link
+                          href="/auth/login"
+                          onClick={() => setMobileOpen(false)}
+                        >
                           Sign in
                         </Link>
                       </Button>
                       <Button
                         className="w-full bg-amber-500 font-bold text-black hover:bg-amber-400"
-                        asChild
                         style={{ fontFamily: "'Syne', sans-serif" }}
                       >
-                        <Link href="/auth/register" onClick={() => setMobileOpen(false)}>
+                        <Link
+                          href="/auth/register"
+                          onClick={() => setMobileOpen(false)}
+                        >
                           Get Started
                         </Link>
                       </Button>
