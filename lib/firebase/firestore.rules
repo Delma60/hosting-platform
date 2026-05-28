@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper functions ──────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && getUserRole() == 'admin';
+    }
+
+    function isReseller() {
+      return isSignedIn() && (getUserRole() == 'reseller' || getUserRole() == 'admin');
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      // Users can read/write their own document
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      // Users can update non-sensitive fields; role changes require admin
+      allow update: if isOwner(userId) && !('role' in request.resource.data.diff(resource.data).affectedKeys())
+                    || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Resellers ─────────────────────────────────────────────────────────────
+
+    match /resellers/{resellerId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() || (
+        isReseller() && resource.data.userId == request.auth.uid
+        && !('tier' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('commissionRate' in request.resource.data.diff(resource.data).affectedKeys())
+        && !('status' in request.resource.data.diff(resource.data).affectedKeys())
+      );
+      allow delete: if isAdmin();
+    }
+
+    // ── Products ──────────────────────────────────────────────────────────────
+
+    match /products/{productId} {
+      allow read: if true; // Public — needed for storefront
+      allow write: if isAdmin();
+    }
+
+    // ── Orders ────────────────────────────────────────────────────────────────
+
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Invoices ──────────────────────────────────────────────────────────────
+
+    match /invoices/{invoiceId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAdmin(); // Created server-side only
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Services ──────────────────────────────────────────────────────────────
+
+    match /services/{serviceId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow write: if isAdmin(); // Provisioned server-side only
+    }
+
+    // ── Support Tickets ───────────────────────────────────────────────────────
+
+    match /tickets/{ticketId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (
+          get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid
+          || isAdmin()
+        );
+        allow create: if isSignedIn() && (
+          get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId == request.auth.uid
+          || isAdmin()
+        );
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // ── Payments ──────────────────────────────────────────────────────────────
+
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow write: if isAdmin(); // Written server-side via webhook only
+    }
+
+    // ── Promo Codes ───────────────────────────────────────────────────────────
+
+    match /promoCodes/{codeId} {
+      allow read: if isSignedIn(); // Needed for checkout validation
+      allow write: if isAdmin();
+    }
+  }
+}

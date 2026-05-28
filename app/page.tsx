@@ -28,7 +28,14 @@ const HOSTING_PLANS: Plan[] = [
     price: "₦2,500",
     period: "/mo",
     description: "Perfect for personal projects and small websites.",
-    features: ["1 Website", "10 GB SSD Storage", "100 GB Bandwidth", "Free SSL", "5 Email Accounts", "99.9% Uptime SLA"],
+    features: [
+      "1 Website",
+      "10 GB SSD Storage",
+      "100 GB Bandwidth",
+      "Free SSL",
+      "5 Email Accounts",
+      "99.9% Uptime SLA",
+    ],
     highlighted: false,
   },
   {
@@ -36,7 +43,15 @@ const HOSTING_PLANS: Plan[] = [
     price: "₦7,500",
     period: "/mo",
     description: "For growing businesses that need more power.",
-    features: ["Unlimited Websites", "50 GB NVMe SSD", "Unlimited Bandwidth", "Free SSL + Wildcard", "Unlimited Email", "Daily Backups", "Priority Support"],
+    features: [
+      "Unlimited Websites",
+      "50 GB NVMe SSD",
+      "Unlimited Bandwidth",
+      "Free SSL + Wildcard",
+      "Unlimited Email",
+      "Daily Backups",
+      "Priority Support",
+    ],
     highlighted: true,
     badge: "Most Popular",
   },
@@ -45,7 +60,16 @@ const HOSTING_PLANS: Plan[] = [
     price: "₦18,000",
     period: "/mo",
     description: "High-performance hosting for demanding applications.",
-    features: ["Unlimited Websites", "200 GB NVMe SSD", "Unlimited Bandwidth", "Premium SSL Suite", "Unlimited Email", "Hourly Backups", "Dedicated Support Manager", "DDoS Protection"],
+    features: [
+      "Unlimited Websites",
+      "200 GB NVMe SSD",
+      "Unlimited Bandwidth",
+      "Premium SSL Suite",
+      "Unlimited Email",
+      "Hourly Backups",
+      "Dedicated Support Manager",
+      "DDoS Protection",
+    ],
     highlighted: false,
   },
 ];
@@ -107,7 +131,16 @@ const FEATURES = [
   },
 ];
 
-const TLDS = [".com", ".ng", ".com.ng", ".org", ".net", ".io", ".africa", ".co"];
+const TLDS = [
+  ".com",
+  ".ng",
+  ".com.ng",
+  ".org",
+  ".net",
+  ".io",
+  ".africa",
+  ".co",
+];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function HomePage() {
@@ -553,16 +586,42 @@ export default function HomePage() {
             HostForge
           </a>
           <ul className="nav-links">
-            <li><a href="/domains">Domains</a></li>
-            <li><a href="/hosting">Hosting</a></li>
-            <li><a href="/pricing">Pricing</a></li>
-            <li><a href="/reseller">Resellers</a></li>
+            <li>
+              <a href="/domains">Domains</a>
+            </li>
+            <li>
+              <a href="/hosting">Hosting</a>
+            </li>
+            <li>
+              <a href="/pricing">Pricing</a>
+            </li>
+            <li>
+              <a href="/reseller">Resellers</a>
+            </li>
           </ul>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <a href="/auth/login" style={{ color: "var(--muted-2)", textDecoration: "none", fontSize: "0.875rem" }} className="nav-links-item">Sign in</a>
-            <a href="/auth/register" className="nav-cta">Get Started</a>
+            <a
+              href="/auth/login"
+              style={{
+                color: "var(--muted-2)",
+                textDecoration: "none",
+                fontSize: "0.875rem",
+              }}
+              className="nav-links-item"
+            >
+              Sign in
+            </a>
+            <a href="/auth/register" className="nav-cta">
+              Get Started
+            </a>
           </div>
-          <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">☰</button>
+          <button
+            className="hamburger"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Menu"
+          >
+            ☰
+          </button>
         </div>
         <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
           <a href="/domains">Domains</a>
@@ -570,7 +629,12 @@ export default function HomePage() {
           <a href="/pricing">Pricing</a>
           <a href="/reseller">Resellers</a>
           <a href="/auth/login">Sign in</a>
-          <a href="/auth/register" style={{ color: "var(--amber)", fontWeight: 600 }}>Get Started →</a>
+          <a
+            href="/auth/register"
+            style={{ color: "var(--amber)", fontWeight: 600 }}
+          >
+            Get Started →
+          </a>
         </div>
       </nav>
 
@@ -580,30 +644,54 @@ export default function HomePage() {
         <div className="hero-glow-2" />
         <div className="hero-grid" />
 
-        <div className="anim-fade-up" style={{ textAlign: "center", width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div
+          className="anim-fade-up"
+          style={{
+            textAlign: "center",
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
           <div className="hero-eyebrow">
             <span className="eyebrow-dot" />
             Built for Africa's Digital Economy
           </div>
 
           <h1 className="hero-headline">
-            Your Domain.<br />
-            Your Hosting.<br />
+            Your Domain.
+            <br />
+            Your Hosting.
+            <br />
             <span className="headline-accent">Your Rules.</span>
           </h1>
 
           <p className="hero-sub">
-            Register domains, launch hosting, and scale your business — all powered by African infrastructure and paid for in Naira via Flutterwave.
+            Register domains, launch hosting, and scale your business — all
+            powered by African infrastructure and paid for in Naira via
+            Flutterwave.
           </p>
 
-          <form className="search-wrap anim-fade-up delay-2" onSubmit={handleSearch}>
-            <span style={{ color: "var(--muted)", fontSize: "0.95rem", flexShrink: 0 }}>🔍</span>
+          <form
+            className="search-wrap anim-fade-up delay-2"
+            onSubmit={handleSearch}
+          >
+            <span
+              style={{
+                color: "var(--muted)",
+                fontSize: "0.95rem",
+                flexShrink: 0,
+              }}
+            >
+              🔍
+            </span>
             <input
               type="text"
               className="search-input"
               placeholder="Find your perfect domain name..."
               value={domain}
-              onChange={e => setDomain(e.target.value)}
+              onChange={(e) => setDomain(e.target.value)}
               autoComplete="off"
               spellCheck={false}
             />
@@ -613,8 +701,12 @@ export default function HomePage() {
           </form>
 
           <div className="tld-tags anim-fade-up delay-3">
-            {TLDS.map(tld => (
-              <button key={tld} className="tld-tag" onClick={() => setDomain(d => d.split(".")[0] + tld)}>
+            {TLDS.map((tld) => (
+              <button
+                key={tld}
+                className="tld-tag"
+                onClick={() => setDomain((d) => d.split(".")[0] + tld)}
+              >
                 {tld}
               </button>
             ))}
@@ -649,7 +741,18 @@ export default function HomePage() {
         <div className="ticker-inner">
           {[...Array(2)].map((_, i) => (
             <div key={i} style={{ display: "flex" }}>
-              {["99.97% Uptime SLA", "Lagos & Cape Town DCs", "Free SSL on Every Plan", "Pay in Naira", "Reseller White-Label", "24/7 Local Support", "NVMe SSD Storage", "Flutterwave Checkout", ".ng Domains Available", "Daily Backups Included"].map((item, j) => (
+              {[
+                "99.97% Uptime SLA",
+                "Lagos & Cape Town DCs",
+                "Free SSL on Every Plan",
+                "Pay in Naira",
+                "Reseller White-Label",
+                "24/7 Local Support",
+                "NVMe SSD Storage",
+                "Flutterwave Checkout",
+                ".ng Domains Available",
+                "Daily Backups Included",
+              ].map((item, j) => (
                 <span key={j} className="ticker-item">
                   <span className="ticker-dot">✦</span>
                   {item}
@@ -666,10 +769,16 @@ export default function HomePage() {
           <div style={{ maxWidth: 560 }}>
             <span className="section-tag">Why HostForge</span>
             <h2 className="section-title">
-              Infrastructure built for where <em style={{ fontStyle: "normal", color: "var(--amber)" }}>you</em> operate.
+              Infrastructure built for where{" "}
+              <em style={{ fontStyle: "normal", color: "var(--amber)" }}>
+                you
+              </em>{" "}
+              operate.
             </h2>
             <p className="section-sub">
-              We didn't just localize a foreign platform. We built HostForge ground-up for the African digital economy — with payment, infrastructure, and support that actually makes sense here.
+              We didn't just localize a foreign platform. We built HostForge
+              ground-up for the African digital economy — with payment,
+              infrastructure, and support that actually makes sense here.
             </p>
           </div>
 
@@ -686,21 +795,40 @@ export default function HomePage() {
       </section>
 
       {/* ── PRICING ─────────────────────────────────────────── */}
-      <section style={{ background: "var(--surface)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+      <section
+        style={{
+          background: "var(--surface)",
+          borderTop: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
         <div className="container">
-          <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <div
+            style={{
+              textAlign: "center",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+            }}
+          >
             <span className="section-tag">Hosting Plans</span>
             <h2 className="section-title" style={{ maxWidth: 500 }}>
-              Straightforward pricing.<br />No surprises.
+              Straightforward pricing.
+              <br />
+              No surprises.
             </h2>
             <p className="section-sub" style={{ textAlign: "center" }}>
-              All plans include free SSL, daily backups, and 24/7 Nigerian support. No setup fees, no hidden charges.
+              All plans include free SSL, daily backups, and 24/7 Nigerian
+              support. No setup fees, no hidden charges.
             </p>
           </div>
 
           <div className="pricing-grid">
             {HOSTING_PLANS.map((plan, i) => (
-              <div key={i} className={`plan-card ${plan.highlighted ? "featured" : ""}`}>
+              <div
+                key={i}
+                className={`plan-card ${plan.highlighted ? "featured" : ""}`}
+              >
                 {plan.badge && <div className="plan-badge">{plan.badge}</div>}
                 <div className="plan-name">{plan.name}</div>
                 <div className="plan-price">
@@ -727,9 +855,26 @@ export default function HomePage() {
             ))}
           </div>
 
-          <p style={{ textAlign: "center", color: "var(--muted)", fontSize: "0.82rem", marginTop: 24 }}>
-            All prices in Nigerian Naira (NGN). Annual billing available — save up to 20%.
-            <a href="/pricing" style={{ color: "var(--amber)", marginLeft: 8, textDecoration: "none" }}>View all plans →</a>
+          <p
+            style={{
+              textAlign: "center",
+              color: "var(--muted)",
+              fontSize: "0.82rem",
+              marginTop: 24,
+            }}
+          >
+            All prices in Nigerian Naira (NGN). Annual billing available — save
+            up to 20%.
+            <a
+              href="/pricing"
+              style={{
+                color: "var(--amber)",
+                marginLeft: 8,
+                textDecoration: "none",
+              }}
+            >
+              View all plans →
+            </a>
           </p>
         </div>
       </section>
@@ -737,7 +882,14 @@ export default function HomePage() {
       {/* ── TESTIMONIALS ────────────────────────────────────── */}
       <section>
         <div className="container">
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+            }}
+          >
             <span className="section-tag">Testimonials</span>
             <h2 className="section-title" style={{ maxWidth: 480 }}>
               Trusted by builders across Africa.
@@ -753,7 +905,9 @@ export default function HomePage() {
                   <div className="author-avatar">{t.initials}</div>
                   <div>
                     <div className="author-name">{t.name}</div>
-                    <div className="author-role">{t.role} · {t.company}</div>
+                    <div className="author-role">
+                      {t.role} · {t.company}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -763,55 +917,227 @@ export default function HomePage() {
       </section>
 
       {/* ── RESELLER CALLOUT ────────────────────────────────── */}
-      <section style={{ background: "var(--surface)", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+      <section
+        style={{
+          background: "var(--surface)",
+          borderTop: "1px solid var(--border)",
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
         <div className="container">
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 64,
+              alignItems: "center",
+            }}
+          >
             <div>
               <span className="section-tag">Reseller Program</span>
               <h2 className="section-title">
-                Start your own hosting business<br />
-                <span style={{ color: "var(--amber)" }}>in under 10 minutes.</span>
+                Start your own hosting business
+                <br />
+                <span style={{ color: "var(--amber)" }}>
+                  in under 10 minutes.
+                </span>
               </h2>
               <p className="section-sub" style={{ marginBottom: 32 }}>
-                Get a white-label storefront with your branding, set your own margins, and collect payments directly from your customers. No technical setup required.
+                Get a white-label storefront with your branding, set your own
+                margins, and collect payments directly from your customers. No
+                technical setup required.
               </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
-                {["Custom domain & branding", "Set your own pricing margins", "Flutterwave payout to your bank", "Manage sub-customers from one dashboard"].map((item, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--muted-2)", fontSize: "0.9rem" }}>
-                    <span style={{ color: "var(--green)", fontSize: "0.8rem" }}>✓</span>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  marginBottom: 32,
+                }}
+              >
+                {[
+                  "Custom domain & branding",
+                  "Set your own pricing margins",
+                  "Flutterwave payout to your bank",
+                  "Manage sub-customers from one dashboard",
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      color: "var(--muted-2)",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    <span style={{ color: "var(--green)", fontSize: "0.8rem" }}>
+                      ✓
+                    </span>
                     {item}
                   </div>
                 ))}
               </div>
-              <a href="/reseller/apply" className="btn-primary">Become a Reseller</a>
+              <a href="/reseller/apply" className="btn-primary">
+                Become a Reseller
+              </a>
             </div>
 
             <div style={{ position: "relative" }}>
-              <div style={{
-                background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 16,
-                padding: 28, fontFamily: "var(--font-body)"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
+              <div
+                style={{
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 16,
+                  padding: 28,
+                  fontFamily: "var(--font-body)",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 20,
+                    paddingBottom: 16,
+                    borderBottom: "1px solid var(--border)",
+                  }}
+                >
                   <div style={{ display: "flex", gap: 6 }}>
-                    {["#ff5f57","#febc2e","#28c840"].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />)}
+                    {["#ff5f57", "#febc2e", "#28c840"].map((c) => (
+                      <div
+                        key={c}
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          background: c,
+                        }}
+                      />
+                    ))}
                   </div>
-                  <span style={{ color: "var(--muted)", fontSize: "0.78rem", marginLeft: 8 }}>your-brand.com</span>
+                  <span
+                    style={{
+                      color: "var(--muted)",
+                      fontSize: "0.78rem",
+                      marginLeft: 8,
+                    }}
+                  >
+                    your-brand.com
+                  </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: 6, background: "linear-gradient(135deg,#3b82f6,#8b5cf6)", flexShrink: 0 }} />
-                  <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.95rem" }}>TechHost NG</span>
-                  <span style={{ marginLeft: "auto", padding: "3px 8px", background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: 4, fontSize: "0.68rem", color: "var(--green)", fontWeight: 600 }}>LIVE</span>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    marginBottom: 16,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      background: "linear-gradient(135deg,#3b82f6,#8b5cf6)",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontWeight: 700,
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    TechHost NG
+                  </span>
+                  <span
+                    style={{
+                      marginLeft: "auto",
+                      padding: "3px 8px",
+                      background: "rgba(16,185,129,0.1)",
+                      border: "1px solid rgba(16,185,129,0.2)",
+                      borderRadius: 4,
+                      fontSize: "0.68rem",
+                      color: "var(--green)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    LIVE
+                  </span>
                 </div>
-                <div style={{ fontSize: "0.78rem", color: "var(--muted)", marginBottom: 16 }}>Your white-label storefront — powered by HostForge</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-                  {[["Monthly Revenue","₦340,000"],["Customers","48"],["Active Services","127"],["This Month","↑ 23%"]].map(([label, val]) => (
-                    <div key={label} style={{ background: "var(--surface)", borderRadius: 8, padding: "10px 12px", border: "1px solid var(--border)" }}>
-                      <div style={{ fontSize: "0.7rem", color: "var(--muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
-                      <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "1rem", color: val.startsWith("↑") ? "var(--green)" : "var(--text)" }}>{val}</div>
+                <div
+                  style={{
+                    fontSize: "0.78rem",
+                    color: "var(--muted)",
+                    marginBottom: 16,
+                  }}
+                >
+                  Your white-label storefront — powered by HostForge
+                </div>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 8,
+                    marginBottom: 16,
+                  }}
+                >
+                  {[
+                    ["Monthly Revenue", "₦340,000"],
+                    ["Customers", "48"],
+                    ["Active Services", "127"],
+                    ["This Month", "↑ 23%"],
+                  ].map(([label, val]) => (
+                    <div
+                      key={label}
+                      style={{
+                        background: "var(--surface)",
+                        borderRadius: 8,
+                        padding: "10px 12px",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: "0.7rem",
+                          color: "var(--muted)",
+                          marginBottom: 4,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.06em",
+                        }}
+                      >
+                        {label}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontWeight: 700,
+                          fontSize: "1rem",
+                          color: val.startsWith("↑")
+                            ? "var(--green)"
+                            : "var(--text)",
+                        }}
+                      >
+                        {val}
+                      </div>
                     </div>
                   ))}
                 </div>
-                <div style={{ padding: "10px 14px", background: "var(--amber-dim)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 8, fontSize: "0.8rem", color: "var(--amber)", display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    background: "var(--amber-dim)",
+                    border: "1px solid rgba(245,158,11,0.2)",
+                    borderRadius: 8,
+                    fontSize: "0.8rem",
+                    color: "var(--amber)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
                   <span>💳</span>
                   Payout of ₦102,000 ready for withdrawal
                 </div>
@@ -827,15 +1153,21 @@ export default function HomePage() {
         <div className="cta-inner">
           <div style={{ marginBottom: 16, fontSize: "2rem" }}>🚀</div>
           <h2 className="cta-title">
-            Ready to launch?<br />
+            Ready to launch?
+            <br />
             <span style={{ color: "var(--amber)" }}>Start for free today.</span>
           </h2>
           <p className="cta-sub">
-            No credit card required to explore. Register your first .ng domain for just ₦1,500 and get your hosting live in minutes.
+            No credit card required to explore. Register your first .ng domain
+            for just ₦1,500 and get your hosting live in minutes.
           </p>
           <div className="cta-buttons">
-            <a href="/auth/register" className="btn-primary">Create Free Account</a>
-            <a href="/domains" className="btn-ghost">Search Domains</a>
+            <a href="/auth/register" className="btn-primary">
+              Create Free Account
+            </a>
+            <a href="/domains" className="btn-ghost">
+              Search Domains
+            </a>
           </div>
         </div>
       </section>
@@ -849,13 +1181,41 @@ export default function HomePage() {
               HostForge
             </a>
             <p className="footer-brand-desc">
-              Nigeria's premier domain and hosting platform. Built for Africa, powered by local infrastructure, accepted in Naira.
+              Nigeria's premier domain and hosting platform. Built for Africa,
+              powered by local infrastructure, accepted in Naira.
             </p>
             <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
-              {["𝕏", "in", "ig", "yt"].map(s => (
-                <a key={s} href="#" style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--muted)", fontSize: "0.75rem", textDecoration: "none", transition: "all 0.2s" }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--amber)"; (e.currentTarget as HTMLElement).style.color = "var(--amber)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLElement).style.color = "var(--muted)"; }}>
+              {["𝕏", "in", "ig", "yt"].map((s) => (
+                <a
+                  key={s}
+                  href="#"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid var(--border)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--muted)",
+                    fontSize: "0.75rem",
+                    textDecoration: "none",
+                    transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor =
+                      "var(--amber)";
+                    (e.currentTarget as HTMLElement).style.color =
+                      "var(--amber)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor =
+                      "var(--border)";
+                    (e.currentTarget as HTMLElement).style.color =
+                      "var(--muted)";
+                  }}
+                >
                   {s}
                 </a>
               ))}
@@ -865,39 +1225,71 @@ export default function HomePage() {
           <div>
             <div className="footer-col-title">Services</div>
             <ul className="footer-links">
-              <li><a href="/domains">Domain Registration</a></li>
-              <li><a href="/hosting">Shared Hosting</a></li>
-              <li><a href="/vps">VPS Servers</a></li>
-              <li><a href="/ssl">SSL Certificates</a></li>
-              <li><a href="/reseller">Reseller Hosting</a></li>
+              <li>
+                <a href="/domains">Domain Registration</a>
+              </li>
+              <li>
+                <a href="/hosting">Shared Hosting</a>
+              </li>
+              <li>
+                <a href="/vps">VPS Servers</a>
+              </li>
+              <li>
+                <a href="/ssl">SSL Certificates</a>
+              </li>
+              <li>
+                <a href="/reseller">Reseller Hosting</a>
+              </li>
             </ul>
           </div>
 
           <div>
             <div className="footer-col-title">Company</div>
             <ul className="footer-links">
-              <li><a href="/about">About Us</a></li>
-              <li><a href="/blog">Blog</a></li>
-              <li><a href="/pricing">Pricing</a></li>
-              <li><a href="/careers">Careers</a></li>
-              <li><a href="/contact">Contact</a></li>
+              <li>
+                <a href="/about">About Us</a>
+              </li>
+              <li>
+                <a href="/blog">Blog</a>
+              </li>
+              <li>
+                <a href="/pricing">Pricing</a>
+              </li>
+              <li>
+                <a href="/careers">Careers</a>
+              </li>
+              <li>
+                <a href="/contact">Contact</a>
+              </li>
             </ul>
           </div>
 
           <div>
             <div className="footer-col-title">Support</div>
             <ul className="footer-links">
-              <li><a href="/dashboard/support">Open a Ticket</a></li>
-              <li><a href="/docs">Documentation</a></li>
-              <li><a href="/status">System Status</a></li>
-              <li><a href="/privacy">Privacy Policy</a></li>
-              <li><a href="/terms">Terms of Service</a></li>
+              <li>
+                <a href="/client/support">Open a Ticket</a>
+              </li>
+              <li>
+                <a href="/docs">Documentation</a>
+              </li>
+              <li>
+                <a href="/status">System Status</a>
+              </li>
+              <li>
+                <a href="/privacy">Privacy Policy</a>
+              </li>
+              <li>
+                <a href="/terms">Terms of Service</a>
+              </li>
             </ul>
           </div>
         </div>
 
         <div className="footer-bottom">
-          <span className="footer-copy">© 2025 HostForge Technologies Ltd · Lagos, Nigeria · RC: 1234567</span>
+          <span className="footer-copy">
+            © 2025 HostForge Technologies Ltd · Lagos, Nigeria · RC: 1234567
+          </span>
           <div className="footer-badges">
             <span className="footer-badge">SSL SECURE</span>
             <span className="footer-badge">NDPR COMPLIANT</span>

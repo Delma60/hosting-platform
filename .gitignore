@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# firebase json file
+**/lib/hosting-platform-daa51-firebase-adminsdk-fbsvc-b8fa4b317f.json

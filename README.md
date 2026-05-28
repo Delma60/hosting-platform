@@ -69,7 +69,7 @@ The platform supports three distinct user roles — **Admin**, **Reseller**, and
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────┐  │
 │  │  Public Site │  │  Customer    │  │  Admin Panel   │  │
 │  │  /           │  │  Dashboard   │  │  /admin        │  │
-│  │  /domains    │  │  /dashboard  │  │                │  │
+│  │  /domains    │  │  /client  │  │                │  │
 │  │  /hosting    │  │              │  │  Reseller Panel│  │
 │  │  /pricing    │  │              │  │  /reseller     │  │
 │  └──────┬───────┘  └──────┬───────┘  └───────┬────────┘  │
@@ -199,51 +199,51 @@ Create user document in Firestore /users/{uid}
   { role: "customer", status: "active", createdAt, ... }
        │
        ▼
-Redirect → /dashboard
+Redirect → /client
 ```
 
 ---
 
 ### 5.2 Customer Flow
 
-All pages under `/dashboard/*` — protected by auth middleware. Role must be `customer` or `reseller`.
+All pages under `/client/*` — protected by auth middleware. Role must be `customer` or `reseller`.
 
-#### Dashboard Home — `/dashboard`
+#### Dashboard Home — `/client`
 
 - Summary cards: Active Services, Pending Invoices, Open Tickets, Upcoming Renewals
 - Quick action buttons: Register Domain, Upgrade Hosting, Open Ticket
 - Recent activity feed
 
-#### My Domains — `/dashboard/domains`
+#### My Domains — `/client/domains`
 
 - Table of all registered domains (name, expiry date, auto-renew toggle, status badge)
 - Per-domain actions: Manage DNS, Transfer, Renew, Cancel
 
-#### Domain DNS Manager — `/dashboard/domains/[domainId]/dns`
+#### Domain DNS Manager — `/client/domains/[domainId]/dns`
 
 - Add/edit/delete DNS records (A, CNAME, MX, TXT, NS)
 - Changes pushed to Domain Registrar API
 
-#### My Hosting — `/dashboard/hosting`
+#### My Hosting — `/client/hosting`
 
 - List of active hosting accounts (package name, server, disk usage bar, bandwidth bar)
 - Actions: Login to cPanel, Upgrade Plan, Suspend Request, Cancel
 
-#### My VPS — `/dashboard/vps`
+#### My VPS — `/client/vps`
 
 - VPS instance list (IP, OS, RAM, CPU, status indicator)
 - Start / Stop / Restart / Rebuild actions via Hosting API
 - Console access link (VNC/SSH info)
 
-#### SSL Certificates — `/dashboard/ssl`
+#### SSL Certificates — `/client/ssl`
 
 - List of purchased certificates with expiry dates
 - Download/install instructions
 
-#### Invoices — `/dashboard/invoices`
+#### Invoices — `/client/invoices`
 
 - Paginated invoice list (invoice #, date, amount, status: Paid / Unpaid / Overdue)
-- Click invoice → `/dashboard/invoices/[invoiceId]` for full detail and PDF download
+- Click invoice → `/client/invoices/[invoiceId]` for full detail and PDF download
 - Pay Now button → Flutterwave checkout
 
 **Invoice Payment Flow:**
@@ -261,22 +261,22 @@ Flutterwave API → generate payment link
        ▼
 Redirect to Flutterwave hosted checkout page
        │
-       ├── Success → Flutterwave redirects to /dashboard/invoices/[id]?status=success
+       ├── Success → Flutterwave redirects to /client/invoices/[id]?status=success
        │                │
        │                ▼
        │          Webhook: POST /api/webhooks/flutterwave
        │            Verify signature → Update invoice status → Provision service
        │
-       └── Failed → Redirect to /dashboard/invoices/[id]?status=failed
+       └── Failed → Redirect to /client/invoices/[id]?status=failed
 ```
 
-#### Support Tickets — `/dashboard/support`
+#### Support Tickets — `/client/support`
 
 - Open ticket list with status badges (Open, In Progress, Resolved, Closed)
-- `/dashboard/support/new` — Create ticket form (subject, department, priority, message, attachments)
-- `/dashboard/support/[ticketId]` — Thread view with reply box and status updates
+- `/client/support/new` — Create ticket form (subject, department, priority, message, attachments)
+- `/client/support/[ticketId]` — Thread view with reply box and status updates
 
-#### Account Settings — `/dashboard/settings`
+#### Account Settings — `/client/settings`
 
 - Profile: name, email, phone, company
 - Security: Change password, 2FA toggle (TOTP)
@@ -626,7 +626,7 @@ const payload = {
   tx_ref: `INV-${invoiceId}-${Date.now()}`,
   amount: invoice.amount,
   currency: invoice.currency,       // "NGN" or "USD"
-  redirect_url: `${BASE_URL}/dashboard/invoices/${invoiceId}`,
+  redirect_url: `${BASE_URL}/client/invoices/${invoiceId}`,
   customer: {
     email: user.email,
     name: user.displayName,
@@ -634,7 +634,7 @@ const payload = {
   },
   customizations: {
     title: "HostForge Payment",
-    description: `Invoice #${invoice.invoiceNumber}`,
+                      Email receipt sent via Nodemailer (SMTP)
     logo: `${BASE_URL}/logo.png`,
   },
   meta: {
@@ -651,9 +651,8 @@ const response = await flutterwave.Payment.initiate(payload);
 
 ```javascript
 // POST /api/webhooks/flutterwave
-// Flutterwave sends this after payment completes
-
-export async function POST(req) {
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=HostForge
   const signature = req.headers.get("verif-hash");
 
   // 1. Verify signature against FLW_SECRET_HASH env variable
@@ -885,6 +884,12 @@ firebase deploy --only firestore:rules
 
 # 6. Start the development server
 npm run dev
+
+---
+
+## Using shadcn/ui
+
+This project uses [shadcn/ui](https://ui.shadcn.com/) for its component library and design system. All custom UI components are located in `components/ui/`. You can extend or customize them as needed. See the [shadcn/ui docs](https://ui.shadcn.com/docs) for usage and theming instructions.
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
@@ -985,89 +990,6 @@ Contributions are welcome. Please follow these steps:
 5. Open a Pull Request against `main`.
 
 Please follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for commit messages.
-
----
-
-
-## 16. Gaps & Implementation Roadmap
-
-### Security & Compliance
-- **Rate limiting on API routes**: Implement middleware (e.g., `next-rate-limit` or custom logic) for all `/api/*` endpoints.
-- **CSRF protection**: Use Next.js built-in CSRF protection for forms and sensitive API routes.
-- **Input sanitization/validation**: Adopt [Zod](https://zod.dev/) for schema validation on all API inputs and forms.
-- **Data privacy policy**: Add a `/privacy` page outlining GDPR/NDPR compliance and user rights.
-- **Fraud detection**: Integrate basic fraud checks on payment flows (e.g., velocity checks, blocklists).
-
-### Testing
-- **Unit tests**: Use [Jest](https://jestjs.io/) for all business logic and utility functions.
-- **Integration tests**: Cover API routes and database interactions.
-- **E2E tests**: Use [Playwright](https://playwright.dev/) or [Cypress](https://www.cypress.io/) for user flows.
-- **CI/CD**: Add a GitHub Actions workflow for linting, testing, and deploy previews.
-
-### State Management
-- **Client state**: Use [Zustand](https://zustand-demo.pmnd.rs/) for global state, React Context for auth, and [TanStack Query](https://tanstack.com/query/latest) for server state/data fetching.
-
-### Caching & Performance
-- **Caching**: Use Redis for session and server-side cache (where needed). Leverage Next.js ISR and caching headers.
-- **CDN**: Configure Vercel/Firebase CDN for static assets.
-- **Image optimization**: Use Next.js `<Image />` and CDN for all images.
-
-### DNS & Domain Infrastructure
-- **WHOIS privacy**: Add as an upsell during domain registration.
-- **Domain lock/unlock**: Expose controls in dashboard for supported TLDs.
-- **EPP/auth code**: Allow customers to request EPP code for outbound transfers.
-- **Nameserver management**: Let resellers set custom nameservers for their customers.
-
-### Hosting-Specific Features
-- **Softaculous/WordPress installer**: Integrate via WHM/cPanel API if available.
-- **Backup/restore**: Expose backup/restore controls in dashboard.
-- **File Manager**: Link to cPanel file manager or build a basic browser.
-- **PHP version switcher**: Expose via cPanel API.
-- **Resource abuse/overage**: Monitor and alert for overages, auto-suspend if needed.
-
-### Notifications
-- **Push notifications**: Integrate Firebase Cloud Messaging for web push.
-- **In-app notification center**: Add a notification bell and feed in dashboard.
-- **SMS alerts**: Integrate Termii or Twilio for Nigerian numbers.
-
-### Reseller Gaps
-- **Credit system**: Prepay credit wallet for resellers, deduct per purchase.
-- **Sub-reseller/multi-tier**: Allow resellers to create/manage sub-resellers.
-- **Reseller API access**: Issue API keys for resellers to build integrations.
-
-### Admin Gaps
-- **Bulk actions**: Bulk suspend, bulk email, etc.
-- **Staff/sub-admin roles**: Role-based permissions for staff.
-- **System health monitoring**: Uptime, server load, alerts.
-- **Backup management**: Centralized backup/restore for all servers.
-
-### Business Logic
-- **Grace period/expiry**: Define and automate grace/expiry flows (1, 7, 30 days after expiry).
-- **Auto-renewal**: Retry logic and notifications for failed renewals.
-- **Refund policy**: Document and automate full/partial refunds.
-- **Proration**: Handle proration on plan changes.
-
-### Developer / API Layer
-- **Public REST API**: Expose endpoints for headless usage.
-- **API key management**: Per-user API keys, dashboard for management.
-- **Webhooks**: Let customers subscribe to webhooks for their own integrations.
-- **API rate limiting/docs**: Add rate limiting and auto-generated docs (Swagger/OpenAPI).
-
-### Accessibility & i18n
-- **Accessibility**: Follow WCAG 2.1 standards for all UI.
-- **RTL support**: Consider for Arabic/French users.
-- **Localization**: Add support for Yoruba, Hausa, Igbo, French, etc.
-
----
-
-## Implementation Notes
-
-- Add `zod`, `zustand`, `@tanstack/react-query`, `jest`, `playwright`, and `next-rate-limit` to `package.json`.
-- Add a `.github/workflows/ci.yml` for CI/CD.
-- Add `/privacy` and `/terms` pages.
-- Add a `middleware/rateLimit.ts` and `lib/validation.ts` for rate limiting and input validation.
-- Add a `docs/api/openapi.yaml` for API docs.
-- Add a `public/privacy-policy.md` for compliance.
 
 ---
 
