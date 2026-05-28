@@ -1,2 +1,2 @@
 # (public)
-Public pages: landing, domains, hosting, pricing, ssl, etc.
+Public pages: landing, domains, hosting, pricing, ssl,

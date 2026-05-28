@@ -146,7 +146,6 @@ const TLDS = [
 export default function HomePage() {
   const [domain, setDomain] = useState("");
   const [searching, setSearching] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -579,64 +578,7 @@ export default function HomePage() {
       `}</style>
 
       {/* ── NAV ─────────────────────────────────────────────── */}
-      <nav>
-        <div className="nav-inner">
-          <a href="/" className="logo">
-            <span className="logo-mark">🌐</span>
-            HostForge
-          </a>
-          <ul className="nav-links">
-            <li>
-              <a href="/domains">Domains</a>
-            </li>
-            <li>
-              <a href="/hosting">Hosting</a>
-            </li>
-            <li>
-              <a href="/pricing">Pricing</a>
-            </li>
-            <li>
-              <a href="/reseller">Resellers</a>
-            </li>
-          </ul>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <a
-              href="/auth/login"
-              style={{
-                color: "var(--muted-2)",
-                textDecoration: "none",
-                fontSize: "0.875rem",
-              }}
-              className="nav-links-item"
-            >
-              Sign in
-            </a>
-            <a href="/auth/register" className="nav-cta">
-              Get Started
-            </a>
-          </div>
-          <button
-            className="hamburger"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Menu"
-          >
-            ☰
-          </button>
-        </div>
-        <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
-          <a href="/domains">Domains</a>
-          <a href="/hosting">Hosting</a>
-          <a href="/pricing">Pricing</a>
-          <a href="/reseller">Resellers</a>
-          <a href="/auth/login">Sign in</a>
-          <a
-            href="/auth/register"
-            style={{ color: "var(--amber)", fontWeight: 600 }}
-          >
-            Get Started →
-          </a>
-        </div>
-      </nav>
+      
 
       {/* ── HERO ────────────────────────────────────────────── */}
       <section className="hero noise">

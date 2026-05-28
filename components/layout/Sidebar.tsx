@@ -1,5 +1,7 @@
-// Responsive Sidebar component using shadcn/ui and lucide-react icons
-import React, { useState } from "react";
+"use client";
+
+import React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -9,98 +11,157 @@ import {
   MessageCircle,
   Settings,
   LogOut,
+  Menu,
+  X,
+  Zap,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-const navItems = [
-  { href: "/client", label: "Overview", icon: LayoutDashboard },
-  { href: "/client/domains", label: "Domains", icon: Globe },
-  { href: "/client/hosting", label: "Hosting", icon: Server },
-  { href: "/client/invoices", label: "Invoices", icon: FileText },
-  { href: "/client/support", label: "Support", icon: MessageCircle },
-  { href: "/client/settings", label: "Settings", icon: Settings },
+// ─── Nav items ────────────────────────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  { href: "/client",          label: "Overview",  icon: LayoutDashboard },
+  { href: "/client/domains",  label: "Domains",   icon: Globe },
+  { href: "/client/hosting",  label: "Hosting",   icon: Server },
+  { href: "/client/invoices", label: "Invoices",  icon: FileText },
+  { href: "/client/support",  label: "Support",   icon: MessageCircle },
+  { href: "/client/settings", label: "Settings",  icon: Settings },
 ];
 
-export function Sidebar() {
+// ─── Shared sidebar content ───────────────────────────────────────────────────
+
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
 
   return (
-    <>
-      {/* Mobile hamburger */}
-      <div className="md:hidden p-2">
+    <div className="flex h-full flex-col gap-2">
+      {/* Logo */}
+      <div className="flex items-center gap-2.5 px-3 py-5 border-b border-white/[0.06]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-base shadow-lg shadow-amber-500/20">
+          <Zap size={15} className="text-black fill-black" />
+        </span>
+        <span
+          className="text-[1.05rem] font-extrabold tracking-tight text-slate-100"
+          style={{ fontFamily: "'Syne', sans-serif" }}
+        >
+          HostForge
+        </span>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 space-y-0.5 px-2 py-3">
+        <p className="mb-2 px-3 text-[0.65rem] font-semibold uppercase tracking-widest text-slate-600">
+          Navigation
+        </p>
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active =
+            href === "/client"
+              ? pathname === "/client"
+              : pathname.startsWith(href);
+
+          return (
+            <Link
+              key={href}
+              href={href}
+              onClick={onNavigate}
+              className={cn(
+                "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150",
+                active
+                  ? "bg-amber-500/10 text-amber-400 shadow-[inset_0_0_0_1px_rgba(245,158,11,0.2)]"
+                  : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"
+              )}
+            >
+              <Icon
+                size={17}
+                className={cn(
+                  "shrink-0 transition-colors",
+                  active ? "text-amber-400" : "text-slate-500 group-hover:text-slate-300"
+                )}
+              />
+              {label}
+              {active && (
+                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-amber-400" />
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-white/[0.06] px-2 py-3">
+        <form action="/api/auth/sign-out" method="POST">
+          <button
+            type="submit"
+            className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500 transition-all duration-150 hover:bg-red-500/10 hover:text-red-400"
+          >
+            <LogOut
+              size={17}
+              className="shrink-0 transition-colors group-hover:text-red-400"
+            />
+            Sign out
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Desktop sidebar ──────────────────────────────────────────────────────────
+
+export function DesktopSidebar() {
+  return (
+    <aside className="hidden md:flex h-screen w-[220px] shrink-0 flex-col border-r border-white/[0.06] bg-[#0b1120] sticky top-0">
+      <SidebarContent />
+    </aside>
+  );
+}
+
+// ─── Mobile sidebar (Sheet drawer) ───────────────────────────────────────────
+
+export function MobileSidebar() {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Toggle sidebar"
+          className="md:hidden text-slate-400 hover:text-slate-200"
+          aria-label="Open navigation"
         >
-          <span className="sr-only">Toggle sidebar</span>
-          <svg
-            width="24"
-            height="24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="lucide lucide-menu"
-          >
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="6" x2="20" y2="6" />
-            <line x1="4" y1="18" x2="20" y2="18" />
-          </svg>
+          <Menu size={20} />
         </Button>
-      </div>
-      {/* Sidebar */}
-      <aside
-        className={`fixed z-30 top-0 left-0 h-full w-60 bg-[#0d1321] border-r border-white/10 p-6 flex flex-col transition-transform duration-200 md:static md:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"} md:w-60`}
+      </SheetTrigger>
+
+      <SheetContent
+        side="left"
+        className="w-[220px] border-r border-white/[0.06] bg-[#0b1120] p-0 [&>button]:hidden"
       >
-        <div className="flex items-center gap-2 font-extrabold text-lg text-slate-100 mb-8 px-2">
-          <span className="w-7 h-7 rounded bg-amber-500 flex items-center justify-center text-sm">
-            🌐
-          </span>
-          HostForge
-        </div>
-        <nav className="flex flex-col gap-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href;
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}
-                onClick={() => setOpen(false)}
-              >
-                <Icon size={18} className="opacity-80" />
-                {item.label}
-              </a>
-            );
-          })}
-        </nav>
-        <form
-          action="/api/auth/sign-out"
-          method="POST"
-          className="mt-auto pt-6 border-t border-white/10"
-        >
-          <Button
-            variant="ghost"
-            type="submit"
-            className="w-full flex items-center gap-3 justify-start text-slate-400 hover:text-white"
-          >
-            <LogOut size={18} className="opacity-80" /> Sign out
-          </Button>
-        </form>
-      </aside>
-      {/* Overlay for mobile */}
-      {open && (
-        <div
-          className="fixed inset-0 z-20 bg-black/40 md:hidden"
+        {/* Close button */}
+        <button
           onClick={() => setOpen(false)}
-          aria-label="Close sidebar overlay"
-        />
-      )}
+          className="absolute right-3 top-4 z-10 flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition hover:bg-white/10 hover:text-slate-300"
+          aria-label="Close navigation"
+        >
+          <X size={15} />
+        </button>
+
+        <SidebarContent onNavigate={() => setOpen(false)} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── Combined export ──────────────────────────────────────────────────────────
+
+export function Sidebar() {
+  return (
+    <>
+      <DesktopSidebar />
+      <MobileSidebar />
     </>
   );
 }
