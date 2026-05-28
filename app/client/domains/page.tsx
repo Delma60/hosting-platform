@@ -57,6 +57,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+
 export default function DomainsPage() {
   const [search, setSearch] = useState("");
   const filtered = DOMAINS.filter(d => d.name.includes(search.toLowerCase()));

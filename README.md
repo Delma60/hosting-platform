@@ -1,6 +1,6 @@
 # 🌐 HostForge — Domain & Hosting Services Platform
 
-> A full-stack multi-tenant platform for selling domain registration, web hosting, VPS, and related services — built with Next.js, Firebase, and Flutterwave.
+> A full-stack multi-tenant platform for selling domain registration, web hosting, VPS, and related services — built with Next.js, Firebase, shadcn, and Flutterwave.
 
 ---
 

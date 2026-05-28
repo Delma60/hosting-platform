@@ -130,5 +130,10 @@ service cloud.firestore {
       allow read: if isSignedIn(); // Needed for checkout validation
       allow write: if isAdmin();
     }
+
+    // ── Carts ─────────────────────────────────────────────────────────────────────
+    match /carts/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
   }
 }
